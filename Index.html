@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fleet Console — Two-Vehicle Live Python Demo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --asphalt:    #1B1E24;
+    --asphalt-2:  #23272F;
+    --panel:      #2A2F3A;
+    --panel-2:    #313747;
+    --steel:      #7C8798;
+    --amber:      #E8871E;
+    --amber-soft: #3A2C18;
+    --mile-green: #4C9A6C;
+    --green-soft: #14301F;
+    --warn:       #D3453D;
+    --warn-soft:  #3A1917;
+    --paper:      #ECE7DC;
+    --line:       rgba(236,231,220,0.10);
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background:var(--asphalt);
+    color:var(--paper);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{ background:var(--amber); color:#1B1E24; }
+
+  .wrap{
+    max-width:1140px;
+    margin:0 auto;
+    padding:40px 28px 100px;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    border-bottom:3px solid var(--amber);
+    padding-bottom:26px;
+    margin-bottom:34px;
+    flex-wrap:wrap;
+  }
+  .hero-mark{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.08em;
+    color:var(--amber);
+    margin:0 0 10px;
+  }
+  .hero h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600;
+    font-size:clamp(32px,5vw,50px);
+    line-height:1.02;
+    margin:0;
+    max-width:600px;
+    text-transform:none;
+  }
+  .hero-total{ text-align:right; min-width:210px; }
+  .hero-total .label{ font-size:13px; color:var(--steel); margin-bottom:4px; }
+  .hero-total .num{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:clamp(26px,4vw,36px);
+  }
+
+  /* ---------- RANGE COMPARISON BAR (infographic) ---------- */
+  .compare{ margin-bottom:44px; }
+  .compare-title{
+    font-size:12.5px;
+    color:var(--steel);
+    margin-bottom:10px;
+    letter-spacing:0.02em;
+  }
+  .compare-row{
+    display:grid;
+    grid-template-columns:150px 1fr 90px;
+    align-items:center;
+    gap:14px;
+    margin-bottom:10px;
+  }
+  .compare-row .name{
+    font-family:'Oswald', sans-serif;
+    font-size:15px;
+  }
+  .compare-track{
+    height:16px;
+    background:var(--panel);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .compare-fill{
+    height:100%;
+    border-radius:3px;
+    transition:width 0.6s ease;
+  }
+  .compare-fill.a{ background:var(--amber); }
+  .compare-fill.b{ background:var(--mile-green); }
+  .compare-row .val{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    text-align:right;
+    color:var(--steel);
+  }
+
+  #boot{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--steel);
+    padding:6px 0 30px;
+  }
+
+  /* ---------- VEHICLE CARDS ---------- */
+  .fleet{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+    margin-bottom:48px;
+  }
+  @media(max-width:760px){ .fleet{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--panel);
+    border-radius:4px;
+    padding:24px 24px 22px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:3px;
+  }
+  .card.veh-a::before{ background:var(--amber); }
+  .card.veh-b::before{ background:var(--mile-green); }
+
+  .card-top{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:20px;
+  }
+  .card-name{ font-family:'Oswald', sans-serif; font-size:22px; font-weight:600; margin:0 0 4px; }
+  .card-sub{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--steel); }
+  .card-badge{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px; letter-spacing:0.05em;
+    padding:4px 9px; border:1px solid var(--line); border-radius:20px;
+    color:var(--steel);
+  }
+
+  /* fuel gauge */
+  .gauge-row{
+    display:flex; align-items:center; gap:18px;
+    margin-bottom:18px;
+  }
+  .gauge{ width:120px; height:70px; flex-shrink:0; }
+  .gauge-info .g-label{ font-size:12px; color:var(--steel); margin-bottom:2px; }
+  .gauge-info .g-val{ font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; }
+  .gauge-info .g-range{ font-size:12.5px; color:var(--steel); margin-top:4px; }
+
+  .card-form{ display:flex; gap:8px; margin-bottom:6px; flex-wrap:wrap; }
+  .card-form input{
+    flex:1; min-width:90px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:3px;
+    color:var(--paper);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    padding:9px 10px;
+  }
+  .card-form input::placeholder{ color:rgba(236,231,220,0.35); }
+  .card-form input:focus{ outline:2px solid var(--amber); outline-offset:1px; }
+
+  .btn{
+    font-family:'Inter', sans-serif;
+    font-size:13px; font-weight:600;
+    border:none; border-radius:3px;
+    padding:9px 13px; cursor:pointer;
+    transition:transform 0.08s ease, filter 0.15s ease;
+    white-space:nowrap;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn-drive{ background:var(--amber); color:#241703; }
+  .btn-drive:hover{ filter:brightness(1.08); }
+  .btn-refuel{ background:transparent; color:var(--paper); border:1px solid var(--line); }
+  .btn-refuel:hover{ background:rgba(236,231,220,0.06); }
+
+  .card-alert{ font-size:12.5px; min-height:18px; margin-top:6px; color:var(--warn); }
+
+  /* ---------- TRIP LOG ---------- */
+  .log-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-bottom:2px solid var(--amber);
+    padding-bottom:10px; margin-bottom:4px;
+  }
+  .log-head h2{ font-family:'Oswald', sans-serif; font-size:24px; font-weight:600; margin:0; }
+  .log-head .count{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--steel); }
+
+  .log{ list-style:none; margin:0; padding:0; }
+  .log li{
+    display:grid;
+    grid-template-columns:56px 1fr;
+    gap:14px; align-items:center;
+    padding:13px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14px;
+  }
+  .log li .idx{ font-family:'IBM Plex Mono', monospace; color:var(--steel); font-size:12px; }
+  .log li .tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px; letter-spacing:0.04em;
+    padding:2px 7px; border-radius:20px;
+    margin-right:9px; position:relative; top:-1px;
+  }
+  .tag.trip{ background:var(--green-soft); color:#8FDCA9; }
+  .tag.fuel{ background:var(--amber-soft); color:#F6B96A; }
+  .tag.blocked{ background:var(--warn-soft); color:#F19A94; }
+  .log .empty{ padding:22px 0; color:var(--steel); font-size:14px; border-bottom:1px solid var(--line); }
+
+  footer{
+    margin-top:56px; padding-top:18px;
+    border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--steel);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  footer code{ font-family:'IBM Plex Mono', monospace; background:var(--panel); padding:2px 6px; border-radius:3px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <p class="hero-mark">FLEET MANAGEMENT SYSTEM · LIVE PYTHON DEMO</p>
+      <h1>Two vehicles,<br>one fuel ledger.</h1>
+    </div>
+    <div class="hero-total">
+      <div class="label">Combined fleet range</div>
+      <div class="num" id="totalRange">— km</div>
+    </div>
+  </div>
+
+  <div id="boot">Booting Python runtime (Pyodide) and constructing Vehicle objects…</div>
+
+  <div class="compare" id="compareBlock" style="display:none;">
+    <div class="compare-title">Range comparison</div>
+    <div class="compare-row">
+      <span class="name">Toyota Corolla</span>
+      <div class="compare-track"><div class="compare-fill a" id="rangeBarA" style="width:0%"></div></div>
+      <span class="val" id="rangeValA">0 km</span>
+    </div>
+    <div class="compare-row">
+      <span class="name">Tata Ace Truck</span>
+      <div class="compare-track"><div class="compare-fill b" id="rangeBarB" style="width:0%"></div></div>
+      <span class="val" id="rangeValB">0 km</span>
+    </div>
+  </div>
+
+  <div class="fleet" id="fleetGrid" style="display:none;">
+
+    <!-- Vehicle A: compact car -->
+    <div class="card veh-a">
+      <div class="card-top">
+        <div>
+          <p class="card-name">Toyota Corolla</p>
+          <p class="card-sub">18.0 km/l · compact car</p>
+        </div>
+        <span class="card-badge">VEHICLE 1</span>
+      </div>
+      <div class="gauge-row">
+        <svg class="gauge" id="gaugeA" viewBox="0 0 120 70"></svg>
+        <div class="gauge-info">
+          <div class="g-label">Fuel level</div>
+          <div class="g-val" id="fuelA">0.0 L</div>
+          <div class="g-range">Range: <span id="rangeA">0</span> km</div>
+        </div>
+      </div>
+      <div class="card-form">
+        <input type="number" id="distA" placeholder="Distance (km)" min="0" step="1" />
+        <button class="btn btn-drive" onclick="doAction('A','drive')">Drive</button>
+      </div>
+      <div class="card-form">
+        <input type="number" id="fuelInA" placeholder="Refuel (L)" min="0" step="1" />
+        <button class="btn btn-refuel" onclick="doAction('A','refuel')">Refuel</button>
+      </div>
+      <div class="card-alert" id="alertA"></div>
+    </div>
+
+    <!-- Vehicle B: delivery truck -->
+    <div class="card veh-b">
+      <div class="card-top">
+        <div>
+          <p class="card-name">Tata Ace Delivery Truck</p>
+          <p class="card-sub">6.0 km/l · delivery truck</p>
+        </div>
+        <span class="card-badge">VEHICLE 2</span>
+      </div>
+      <div class="gauge-row">
+        <svg class="gauge" id="gaugeB" viewBox="0 0 120 70"></svg>
+        <div class="gauge-info">
+          <div class="g-label">Fuel level</div>
+          <div class="g-val" id="fuelB">0.0 L</div>
+          <div class="g-range">Range: <span id="rangeB">0</span> km</div>
+        </div>
+      </div>
+      <div class="card-form">
+        <input type="number" id="distB" placeholder="Distance (km)" min="0" step="1" />
+        <button class="btn btn-drive" onclick="doAction('B','drive')">Drive</button>
+      </div>
+      <div class="card-form">
+        <input type="number" id="fuelInB" placeholder="Refuel (L)" min="0" step="1" />
+        <button class="btn btn-refuel" onclick="doAction('B','refuel')">Refuel</button>
+      </div>
+      <div class="card-alert" id="alertB"></div>
+    </div>
+
+  </div>
+
+  <div class="log-head">
+    <h2>Trip &amp; fuel log</h2>
+    <span class="count"><span id="logCount">0</span> entries</span>
+  </div>
+  <ul class="log" id="logList">
+    <li class="empty">No activity yet — drive or refuel above to see the Python class run live.</li>
+  </ul>
+
+  <footer>
+    <span>Every button click calls the real <code>Vehicle.drive()</code> / <code>.refuel()</code> / <code>.check_range()</code> Python methods, executed in-browser via Pyodide.</span>
+    <span>Independent objects → independent fuel levels.</span>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js"></script>
+<script>
+  // ---- The exact Python program, embedded as a string and run inside Pyodide ----
+  const PYTHON_SOURCE = `
+class Vehicle:
+    """Represents a single fleet vehicle."""
+
+    def __init__(self, make, model, fuel_level, mileage):
+        self.make = make
+        self.model = model
+        self.fuel_level = float(fuel_level)
+        self.mileage = float(mileage)
+
+    def drive(self, distance):
+        if distance <= 0:
+            return "IGNORED", "Distance must be positive. Trip ignored."
+        fuel_needed = distance / self.mileage
+        if fuel_needed > self.fuel_level:
+            return "BLOCKED", f"Not enough fuel! {self.make} {self.model} needs {fuel_needed:.2f} L for {distance:.1f} km but only has {self.fuel_level:.2f} L."
+        self.fuel_level -= fuel_needed
+        return "TRIP", f"Trip confirmed: {self.make} {self.model} drove {distance:.1f} km, used {fuel_needed:.2f} L | Fuel remaining: {self.fuel_level:.2f} L"
+
+    def refuel(self, liters):
+        if liters <= 0:
+            return "IGNORED", "Refuel amount must be positive. Refuel ignored."
+        self.fuel_level += liters
+        return "FUEL", f"Refueled: +{liters:.2f} L | New Fuel Level for {self.make} {self.model}: {self.fuel_level:.2f} L"
+
+    def check_range(self):
+        return self.fuel_level * self.mileage
+
+    def snapshot(self):
+        return {
+            "make": self.make,
+            "model": self.model,
+            "fuel_level": self.fuel_level,
+            "mileage": self.mileage,
+            "range": self.check_range(),
+        }
+
+
+# Instantiate two independent objects, exactly like the driver's main()
+compact_car = Vehicle("Toyota", "Corolla", 40.0, 18.0)
+delivery_truck = Vehicle("Tata", "Ace Delivery Truck", 80.0, 6.0)
+`;
+
+  let pyodide;
+  const MAX_FUEL = { A: 60, B: 140 }; // gauge scale reference (liters) — purely visual
+
+  function fmt1(n){ return Number(n).toLocaleString("en-US", { maximumFractionDigits: 1 }); }
+  function fmt2(n){ return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  // Draws a half-circle fuel gauge (0 = empty, needle sweeps to full)
+  function drawGauge(svgId, fuel, maxFuel, color){
+    const svg = document.getElementById(svgId);
+    const cx = 60, cy = 62, r = 50;
+    const pct = Math.max(0, Math.min(1, fuel / maxFuel));
+    const startAngle = Math.PI;             // 180deg (left)
+    const endAngle = Math.PI - Math.PI * pct; // sweeps toward 0deg (right) as pct grows
+    const needleX = cx + r * 0.82 * Math.cos(endAngle);
+    const needleY = cy - r * 0.82 * Math.sin(endAngle);
+
+    const arcPoints = [];
+    const steps = 40;
+    for(let i=0;i<=steps;i++){
+      const a = Math.PI - (Math.PI * i/steps);
+      arcPoints.push([cx + r*Math.cos(a), cy - r*Math.sin(a)]);
+    }
+    const trackPath = "M " + arcPoints.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" L ");
+
+    const filledSteps = Math.round(steps*pct);
+    const fillPath = "M " + arcPoints.slice(0, filledSteps+1).map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" L ");
+
+    svg.innerHTML = `
+      <path d="${trackPath}" fill="none" stroke="rgba(236,231,220,0.14)" stroke-width="9" stroke-linecap="round"/>
+      <path d="${fillPath}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"/>
+      <line x1="${cx}" y1="${cy}" x2="${needleX.toFixed(1)}" y2="${needleY.toFixed(1)}" stroke="${'#ECE7DC'}" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${cx}" cy="${cy}" r="4" fill="#ECE7DC"/>
+    `;
+  }
+
+  function updateCompare(rangeA, rangeB){
+    const maxRange = Math.max(rangeA, rangeB, 1);
+    document.getElementById('rangeBarA').style.width = (rangeA/maxRange*100) + "%";
+    document.getElementById('rangeBarB').style.width = (rangeB/maxRange*100) + "%";
+    document.getElementById('rangeValA').textContent = fmt1(rangeA) + " km";
+    document.getElementById('rangeValB').textContent = fmt1(rangeB) + " km";
+    document.getElementById('totalRange').textContent = fmt1(rangeA + rangeB) + " km";
+  }
+
+  function refreshCard(which, snap){
+    const color = which === 'A' ? '#E8871E' : '#4C9A6C';
+    document.getElementById('fuel'+which).textContent = fmt2(snap.fuel_level) + " L";
+    document.getElementById('range'+which).textContent = fmt1(snap.range);
+    drawGauge('gauge'+which, snap.fuel_level, MAX_FUEL[which], color);
+  }
+
+  function addLogRow(status, message){
+    const list = document.getElementById('logList');
+    const empty = list.querySelector('.empty');
+    if(empty) empty.remove();
+
+    const tagClass = status === 'TRIP' ? 'trip' : (status === 'FUEL' ? 'fuel' : 'blocked');
+    const tagText  = status === 'TRIP' ? 'TRIP' : (status === 'FUEL' ? 'REFUEL' : 'BLOCKED');
+
+    const li = document.createElement('li');
+    const n = list.children.length + 1;
+    li.innerHTML = `
+      <span class="idx">${String(n).padStart(2,'0')}</span>
+      <span><span class="tag ${tagClass}">${tagText}</span>${message}</span>
+    `;
+    list.prepend(li);
+    document.getElementById('logCount').textContent = list.children.length;
+  }
+
+  async function boot(){
+    pyodide = await loadPyodide();
+    await pyodide.runPythonAsync(PYTHON_SOURCE);
+
+    const snapA = pyodide.globals.get('compact_car').snapshot().toJs({dict_converter: Object.fromEntries});
+    const snapB = pyodide.globals.get('delivery_truck').snapshot().toJs({dict_converter: Object.fromEntries});
+
+    refreshCard('A', snapA);
+    refreshCard('B', snapB);
+    updateCompare(snapA.range, snapB.range);
+
+    document.getElementById('boot').style.display = 'none';
+    document.getElementById('compareBlock').style.display = 'block';
+    document.getElementById('fleetGrid').style.display = 'grid';
+  }
+
+  window.doAction = async function(which, action){
+    const varName = which === 'A' ? 'compact_car' : 'delivery_truck';
+    const alertEl = document.getElementById('alert'+which);
+    alertEl.textContent = "";
+
+    const vehicle = pyodide.globals.get(varName);
+    let resultPy;
+
+    if(action === 'drive'){
+      const distInput = document.getElementById('dist'+which);
+      const distance = parseFloat(distInput.value);
+      if(isNaN(distance) || distance <= 0){
+        alertEl.textContent = "Enter a distance greater than zero.";
+        return;
+      }
+      resultPy = vehicle.drive(distance);
+      distInput.value = "";
+    } else {
+      const fuelInput = document.getElementById('fuelIn'+which);
+      const liters = parseFloat(fuelInput.value);
+      if(isNaN(liters) || liters <= 0){
+        alertEl.textContent = "Enter a liter amount greater than zero.";
+        return;
+      }
+      resultPy = vehicle.refuel(liters);
+      fuelInput.value = "";
+    }
+
+    const [status, message] = resultPy.toJs();
+    const snap = vehicle.snapshot().toJs({dict_converter: Object.fromEntries});
+    refreshCard(which, snap);
+
+    if(status === 'BLOCKED'){
+      alertEl.textContent = "Trip blocked — not enough fuel.";
+    }
+
+    const otherVar = which === 'A' ? 'delivery_truck' : 'compact_car';
+    const otherRange = pyodide.globals.get(otherVar).check_range();
+    updateCompare(
+      which === 'A' ? snap.range : otherRange,
+      which === 'A' ? otherRange : snap.range
+    );
+
+    addLogRow(status, message);
+  };
+
+  boot();
+</script>
+
+</body>
+</html>
